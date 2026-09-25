@@ -10,9 +10,10 @@ These notes contain instructions for Claude to implement the ideas in cayley_cod
 - avoid explicit python loops unless it doesn't matter for performance. try to use numpy where possible
 - keep for yourself compact notes about the state of the implementation
 - maintain a .gitignore covering all files that aren't "sources" in the usual sense.
+- For clarification, you may refer to the file ```../cayley_codes.md``` for information about where this project is going, and the context of things we're implementing.
 
 ### Step 1
-- Create a file code/core.py.
+- inside code/core.py, add the following:
 - For the ring $R=F_2[F_2]$, add a class defining a map between free modules $f:R^n\rightarrow R^m$.
 The class should consist of (1) an overall support matching $F_2$ elements with integers $[0,\ldots,s-1]$, and (2) a $sm\times n$ binary matrix describing the coefficients of the linear map given the overall support. In other words, the same support applies to every column of $f$. For the binary matrix and operations, use the classes and functions provided in ```code/z2_helpers.py``` and ```code/bitgauss_wrappers.py```.
 - Add a function to compose two maps of the above form.
