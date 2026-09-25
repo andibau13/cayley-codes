@@ -20,9 +20,7 @@ Mathematically, finding the commuting $X/Z$ operators corresponds to computing t
 If $H_Z$ denotes the $Z$-check matrix, then this involves computing the syzygies/kernel of $H_Z^\dagger$ defined as $(H_Z^\dagger)_{ij}=(H_Z)_{ji}^*$. 
 
 To find the sygygies in practice, we find all kernel elements supported on the depth-$l$ star, for increasing $l$ starting from $l=0$.
-Let $X_l$ denote the kernel elements on the depth-$l$ star which are not in the span of any kernel elements of depth-$m$ stars with $m<l$.
-To find $X_l$, we start by finding the full space of kernel elements supported on the depth-$l$ star.
-Then, for each $m<l$, we consider all elements of $X_m$ translated to any vertex in the depth-$l-m$ star, and quotient by this space.
+Every time we find a new generator, we quotient it by all translates of all previously found generators, or at least all whose support fits within the depth-$l$ star.
 We proceed until a reasonable $l$, such as $l=4$ or $l=5$.
 We hope that we only find new kernel elements at very small $l$, say $l=0$, $l=1$ and maybe $l=2$ (already less ideal).
 

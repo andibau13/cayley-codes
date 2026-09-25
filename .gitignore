@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+
+# editor / tooling / environment, not sources
+.idea
+.vscode
+.claude/settings.local.json
+.mcp.json
+.ripgreprc
+.bashrc
+.bash_profile
+.zshrc
+.zprofile
+.profile
+.gitconfig
