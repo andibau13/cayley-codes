@@ -219,6 +219,78 @@ def test_euler_sum():
     print(f"euler sum: ok  (raw generator counts were redundant by {over} in total)")
 
 
+# --------------------------------------------------------------- compactification
+
+def test_compactification():
+    """reduce_word is a homomorphism and left_perm is left multiplication."""
+    comp = core.psl2p(5)
+    assert comp.N == 60  # PSL(2,5) = A_5
+    words = [E, (1,), (-2,), (1, 2), (2, -1, 2), (1, 1, 1, -2, 1)]
+    for u in words:
+        Lu = comp.left_perm(u)
+        for v in words:
+            assert Lu[comp.reduce_word(v)] == comp.reduce_word(w_mul(u, v))
+        assert comp.reduce_word(w_mul(u, w_inv(u))) == 0
+    # left multiplications are permutations and commute with right multiplications
+    for x in core.GENS:
+        assert sorted(comp.L[x]) == list(range(comp.N))
+        for y in core.GENS:
+            assert np.array_equal(comp.L[x][comp.R[y]], comp.R[y][comp.L[x]])
+    print("compactification: ok")
+
+
+def test_girth():
+    """find_girth against brute force over all reduced words on a star."""
+    L = 6
+    for comp, name in [(core.psl2p(5), "PSL(2,5)"), (core.psl2p(7), "PSL(2,7)"),
+                       (core.psl2p(11), "PSL(2,11)"), (core.psl2p(13), "PSL(2,13)")]:
+        g = comp.find_girth()
+        brute = min((len(w) for w in star(L) if w and comp.reduce_word(w) == 0), default=np.inf)
+        assert (g == brute) if g <= L else (brute == np.inf), f"{name}: {g} vs brute {brute}"
+        print(f"  {name}: |G|={comp.N}, girth={g}")
+    # a tiny quotient with short relations: Z_2 x Z_3 (a^2 = b^3 = [a,b] = 1)
+    comp = core.Compactification.from_group((0, 0), (1, 0), (0, 1),
+                                            lambda x, y: ((x[0] + y[0]) % 2, (x[1] + y[1]) % 3))
+    assert comp.N == 6 and comp.find_girth() == 2  # a^2 = e
+    print("girth: ok")
+
+
+def test_compactify():
+    """
+    compactify must be a ring homomorphism on maps, send dagger to transpose, and hence
+    turn the infinite CSS code into a finite one.
+    """
+    comp = core.psl2p(5)
+    N = comp.N
+
+    # (1) entrywise definition, using only reduce_word
+    f = random_map(2, 3, l=2)
+    M = f.compactify(comp)
+    for v in [E, (1,), (1, -2), (2, 2, 1)]:
+        d = comp.reduce_word(v)
+        for i in range(f.m):
+            for j in range(f.n):
+                acc = np.zeros(N, dtype=int)
+                for u in f.entry(i, j):
+                    acc[comp.reduce_word(w_mul(u, v))] ^= 1
+                assert np.array_equal(M[i * N:(i + 1) * N, j * N + d], acc)
+
+    # (2) functoriality and dagger -> transpose
+    g = random_map(3, 2, l=1)
+    assert np.array_equal(core.compose(f, g).compactify(comp), (M @ g.compactify(comp)) % 2)
+    assert np.array_equal(hermitian_transpose(f).compactify(comp), M.T)
+
+    # (3) a finite CSS code
+    for (n, m, w) in [(3, 1, 3), (4, 2, 4)]:
+        H_X, H_Z = generate_infinite_code(n, m, l_max=2, l_init=1, w_init=w, rng=rng)
+        AX, AZ = H_X.compactify(comp).T, H_Z.compactify(comp).T  # rows = stabilizers
+        assert not (AX @ AZ.T % 2).any(), "compactified code is not CSS-commuting"
+        rX, rZ = len(z2_helpers.injectify(AX.T)), len(z2_helpers.injectify(AZ.T))
+        print(f"  n={n} m={m}: [[{n * N}, {n * N - rX - rZ}]] "
+              f"(rank X {rX}/{H_X.n * N}, rank Z {rZ}/{H_Z.n * N})")
+    print("compactify: ok")
+
+
 if __name__ == "__main__":
     test_compose()
     test_expand()
@@ -228,4 +300,7 @@ if __name__ == "__main__":
     test_pairing()
     test_infinite_code()
     test_euler_sum()
+    test_compactification()
+    test_girth()
+    test_compactify()
     print("all ok")

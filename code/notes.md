@@ -1,6 +1,6 @@
 # Implementation notes
 
-State: **steps 1 and 2 done** (`core.py`, tested by `test_core.py`).
+State: **steps 1-3 done** (`core.py`, tested by `test_core.py`).
 
 ## Conventions fixed in step 1
 
@@ -42,6 +42,38 @@ State: **steps 1 and 2 done** (`core.py`, tested by `test_core.py`).
   Both are maps *into* `R^n` (columns = stabilizer generators, `R^n` = qubits per vertex).
 - `star_span(g, l)`: F_2 matrix of all translates of g's columns fitting in the depth-l star;
   `module_eq_on_star(g, h, l)` compares two modules there.
+
+### Step 3
+
+- `Compactification(perm_a, perm_b)`: a finite quotient `pi: F_2 -> G`, stored as the two
+  **right** multiplication permutations `R[x]` of `[0, |G|-1]`, index `0` = identity.
+  `Compactification.from_group(e, a, b, mul)` builds them by BFS over any hashable group
+  (`.elements` keeps the list); `psl2p(p)` = the `PSL(2, F_p)` family of the md.
+- `reduce_word(w)`: apply the right permutations from the identity, giving the index of `pi(w)`.
+- `comp.L[x]` (lazy property): the *left* multiplication permutations, `L[x][g] = pi(x)*g`.
+  These are what act on the stabilizers (the map `f` multiplies the support from the left, see
+  `expand`), and they are not directly given by the input data. Reconstructed from a BFS spanning
+  tree: if `g = h*y` with `h` one step closer to the identity, then `x*g = (x*h)*y`, i.e.
+  `L[x][g] = R[y][L[x][h]]` — one vectorized pass per BFS level. `left_perm(w)` composes them.
+- `find_girth()`: BFS on the states `(g, last letter)` (4|G| of them), whose paths from the root
+  are exactly the reduced words; the girth is the first distance at which a state
+  `(identity, *)` appears. So this is the *algebraic* girth = shortest nonempty reduced word in
+  `ker(pi)`, which counts e.g. `a^2 = e` as a cycle of length 2. ~1.6 s for |G| = 515100.
+- `ModuleMap.compactify(comp)`: the ordinary `(m|G|) x (n|G|)` binary matrix, flat layout
+  `index = coordinate * |G| + group index`. For each support word `u`, row block
+  `left_perm(u)` gets the coefficients; `^=` (not `=`) because distinct words of `F_2` can
+  collapse onto the same element of `G`. Fast (0.06 s for |G| = 1092, n = 5).
+- Compactification is functorial and turns the dagger into the plain transpose:
+  `compactify(f g) = compactify(f) compactify(g)` and `compactify(f^dagger) = compactify(f)^T`
+  (because `pi(u)^-1 d = g <=> d = pi(u) g`). Hence `H_X^dagger H_Z = 0` immediately gives the
+  finite CSS commutation `compactify(H_X)^T compactify(H_Z) = 0` — checked in `test_compactify`.
+- Girths found for `psl2p(p)`: p=5,7,11,13,31,61,101 -> |G|=60,168,660,1092,14880,113460,515100
+  with girth 5,6,9,9,12,15,14 (logarithmic, and not monotone in p).
+- Observed so far: for the small random codes tried (n <= 5, l_max = 2, |G| = 60 or 1092) the
+  compactified code has `k = 0`, i.e. the `n|G|` qubits are used up by the stabilizers with no
+  dependencies gained from the quotient. Consistent with `k_X + k_Z = n` per vertex; to get
+  logicals one needs `m < n` in the Euler-sum sense (few stabilizers per vertex), not just few
+  initial generators.
 
 ### Why the dagger is the right notion of commutation (checked by `test_pairing`)
 
@@ -105,4 +137,5 @@ of `f` on every star up to `l_max`.
 
 - Free resolution / Euler sum to get the true number of stabilizers per vertex (and to prune
   redundant generators).
-- Compactification: quotient by a finite 2-generator group, girth, distance.
+- Distance of the compactified codes; search for compactifications (girth) and for infinite codes
+  with `k > 0` after compactification.
