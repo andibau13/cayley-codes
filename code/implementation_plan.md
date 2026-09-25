@@ -24,4 +24,5 @@ The class should consist of (1) an overall support matching $F_2$ elements with 
 - add a function ```generate_infinite_code``` that takes as input a number $n$ of qubits per vertex, a number $m<n$ of initial generators, and maximum syzygy star/support size $l_{\max}, and a maximum initial star size $l_{init}$ and stabilizer weight $w_{init}$.
 It then generates $m$ random words of hamming weight $\leq w_{init}$ on the $l_{init}$-star, and assembles them into a free-module map $f$.
 Then we return $H_X=\ker(f^\dagger)$ and $H_Z=\ker(H_X^\dagger)$, where $\ker$ means the syzygies.
-It should then automatically hold that $H_X=\ker(H_Z^\dagger)$ (related to the fact that the single and triple annihilator are the same)?
+It should then automatically hold that $H_X=\ker(H_Z^\dagger)$ (related to the fact that the single and triple annihilator are the same).
+The syzygy should correspond to the operators of other type ($X$ vs $Z$) that commute.
