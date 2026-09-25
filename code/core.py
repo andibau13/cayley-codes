@@ -93,10 +93,19 @@ class ModuleMap:
     def is_zero(self):
         return not self.mat.any()
 
+    def weights(self):
+        """Number of nonzero (coordinate, group element) entries of each column."""
+        return self.mat.sum(axis=0)
+
+    def depths(self):
+        """Largest word length occurring in each column (support radius)."""
+        lens = np.array([len(w) for w in self.support])
+        return np.array([lens[self.blocks[:, :, j].any(axis=0)].max(initial=0) for j in range(self.n)])
+
     @classmethod
     def from_entries(cls, m, n, entries):
         """entries: dict (i, j) -> iterable of words (repeats cancel mod 2)."""
-        support = _sort_words({w for ws in entries.values() for w in ws})
+        support = _sort_words({w for ws in entries.values() for w in ws}) or [E]
         mat = np.zeros((m * len(support), n), dtype=int)
         blocks = mat.reshape(m, len(support), n)
         idx = {w: k for k, w in enumerate(support)}
@@ -174,6 +183,17 @@ def compose(f, g):
     return ModuleMap(support, H.reshape(f.m * len(support), g.n), f.m).trimmed()
 
 
+def hermitian_transpose(f):
+    """
+    f^dagger: R^m -> R^n with (f^dagger)_ji = (f_ij)^*, where * is the antipode
+    g -> g^-1 of R (extended linearly).  This is the adjoint of f for the pairing
+    <x, y> = sum_i (x_i)^* y_i, and it is an anti-involution:
+    (f^dagger)^dagger = f and (f g)^dagger = g^dagger f^dagger.
+    """
+    return ModuleMap([w_inv(u) for u in f.support],
+                     f.blocks.transpose(2, 1, 0).reshape(f.n * f.s, f.m), f.n)
+
+
 # ------------------------------------------------------------------------ syzygies
 
 def _valid_shifts(supp, star_set):
@@ -230,3 +250,65 @@ def syzygies(f, l_max, verbose=False):
     g = ModuleMap(S, cols, f.n).trimmed()
     g.level_counts = counts
     return g
+
+
+def star_span(g, l):
+    """
+    F_2 matrix (in the flat (m, star(l)) layout) whose columns are all translates of
+    the columns of g that still fit inside the depth-l star, i.e. a basis-free
+    description of im(g) restricted to that star.
+    """
+    Sl = star(l)
+    Sl_idx = {w: k for k, w in enumerate(Sl)}
+    Sl_set = set(Sl)
+    cols = [x.shifted(w).dense_columns(Sl_idx)
+            for x in map(g.column, range(g.n)) for w in _valid_shifts(x.support, Sl_set)]
+    return np.hstack(cols) if cols else np.zeros((g.m * len(Sl), 0), dtype=int)
+
+
+def module_eq_on_star(g, h, l):
+    """Do im(g) and im(h) agree on the depth-l star?  (as F_2 spans of translates)"""
+    A, B = star_span(g, l), star_span(h, l)
+    return not z2_helpers.remove_image(A, B)[1] and not z2_helpers.remove_image(B, A)[1]
+
+
+# ------------------------------------------------------------------- infinite codes
+
+def random_gens(n, m, l, w, rng=None):
+    """m random elements of R^n of weight w supported on the depth-l star, as a map R^m -> R^n."""
+    rng = np.random.default_rng() if rng is None else rng
+    S = star(l)
+    mat = np.zeros((n * len(S), m), dtype=int)
+    for j in range(m):
+        mat[rng.choice(n * len(S), size=w, replace=False), j] = 1
+    return ModuleMap(S, mat, n).trimmed()
+
+
+def generate_infinite_code(n, m, l_max, l_init, w_init, rng=None, f=None, verbose=False):
+    """
+    Random translation-invariant CSS code on the Cayley graph of F_2 with n qubits
+    per vertex (see cayley_codes.md).
+
+    m < n random Z-type generators of weight w_init supported on the depth-l_init star
+    are assembled into f: R^m -> R^n (columns = the generators).  Then
+
+        H_X = ker(f^dagger),   H_Z = ker(H_X^dagger),
+
+    with ker = `syzygies(., l_max)`.  H_X collects the X operators commuting with all
+    translates of the initial Z operators (x commutes with all translates of y iff
+    y^dagger x = 0), and H_Z then collects *all* Z operators commuting with those,
+    which generally contains more than the initial f.  Both are returned as maps into
+    R^n (columns = stabilizer generators).  f can be passed in explicitly instead of
+    being sampled.
+    """
+    if f is None:
+        f = random_gens(n, m, l_init, w_init, rng)
+    H_X = syzygies(hermitian_transpose(f), l_max)
+    H_Z = syzygies(hermitian_transpose(H_X), l_max)
+    if verbose:
+        print(f"f:   {f.n} Z gen(s), weights {f.weights()}, depths {f.depths()}")
+        print(f"H_X: {H_X.n} gen(s) per vertex, level counts {H_X.level_counts}, "
+              f"weights {H_X.weights()}, depths {H_X.depths()}")
+        print(f"H_Z: {H_Z.n} gen(s) per vertex, level counts {H_Z.level_counts}, "
+              f"weights {H_Z.weights()}, depths {H_Z.depths()}")
+    return H_X, H_Z

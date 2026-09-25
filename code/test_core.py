@@ -3,7 +3,8 @@
 import numpy as np
 import core
 import z2_helpers
-from core import ModuleMap, compose, syzygies, star, w_mul, E
+from core import (ModuleMap, compose, syzygies, star, w_mul, w_inv, E,
+                  hermitian_transpose, star_span, module_eq_on_star, generate_infinite_code)
 from z2_helpers import z2lin
 
 rng = np.random.default_rng(0)
@@ -138,9 +139,93 @@ def test_syzygies():
     print("syzygies: ok")
 
 
+# ------------------------------------------------------------- dagger / infinite code
+
+def test_dagger():
+    f, g = random_map(2, 3), random_map(3, 2)
+    fd = hermitian_transpose(f)
+    # entrywise definition and involutivity
+    for i in range(f.m):
+        for j in range(f.n):
+            assert set(fd.entry(j, i)) == {w_inv(u) for u in f.entry(i, j)}
+    assert as_dicts(hermitian_transpose(fd)) == as_dicts(f)
+    # anti-multiplicativity
+    assert as_dicts(hermitian_transpose(compose(f, g))) == \
+           as_dicts(compose(hermitian_transpose(g), hermitian_transpose(f)))
+    print("dagger: ok")
+
+
+def test_pairing():
+    """
+    y^dagger x = 0  <=>  every translate of (the columns of) y has even overlap with
+    every translate of (the columns of) x.  Checked by brute force on a star.
+    """
+    n, l = 2, 1
+    S, Sl = star(l), star(2 * l)
+    x = ModuleMap(S, rng.integers(0, 2, size=(n * len(S), 1)), n).trimmed()
+    y = ModuleMap(S, rng.integers(0, 2, size=(n * len(S), 1)), n).trimmed()
+    prod = compose(hermitian_transpose(y), x)  # a single ring element (1 x 1 matrix)
+    # overlap of x*u and y*v, as dicts over (coordinate, word)
+    def cells(z, w):
+        return {(i, w_mul(u, w)) for i in range(z.m) for u in z.entry(i, 0)}
+    for u in Sl:
+        for v in Sl:
+            overlap = len(cells(x, u) & cells(y, v)) % 2
+            # <y v, x u> = coefficient of (y^dagger x) at v u^-1
+            assert overlap == int(w_mul(v, w_inv(u)) in prod.entry(0, 0))
+    print("pairing: ok")
+
+
+def test_infinite_code():
+    """
+    The defining property of step 2: H_X = ker(H_Z^dagger), i.e. the triple annihilator
+    equals the single one.  Checked on stars up to l_max.
+    """
+    l_max = 2
+    for (n, m, w) in [(3, 1, 3), (3, 2, 4), (4, 2, 4)]:
+        f = core.random_gens(n, m, l=1, w=w, rng=rng)
+        H_X, H_Z = generate_infinite_code(n, m, l_max, l_init=1, w_init=w, f=f)
+        assert compose(hermitian_transpose(H_X), H_Z).is_zero(), "H_X, H_Z do not commute"
+        # the initial Z operators must reappear inside im(H_Z)
+        for l in range(l_max + 1):
+            assert not new_columns(star_span(H_Z, l), star_span(f, l)), "f not inside im(H_Z)"
+        H_X3 = syzygies(hermitian_transpose(H_Z), l_max)
+        # im(H_X) is always contained in im(H_X3); equality is the claim being tested
+        for l in range(l_max + 1):
+            assert not new_columns(star_span(H_X3, l), star_span(H_X, l))
+        eq = module_eq_on_star(H_X, H_X3, l_max)
+        print(f"  n={n} m={m} w={w}: {H_X.n} X-gens {H_X.level_counts}, "
+              f"{H_Z.n} Z-gens {H_Z.level_counts}, H_X == ker(H_Z^dagger): {eq}")
+        assert eq, "H_X != ker(H_Z^dagger) on the depth-l_max star"
+    print("infinite code: ok")
+
+
+def test_euler_sum():
+    """
+    cayley_codes.md claims the number of X plus Z stabilizers per vertex is exactly n
+    for G = F_2.  The raw generator counts k_X + k_Z can exceed n (the returned
+    generators need not be R-independent -- a relation may only be visible on a larger
+    star than l_max), but the Euler sum of the free resolution should give n.
+    """
+    l_max, over = 3, 0
+    for (n, m, w) in [(3, 1, 3), (4, 2, 4), (5, 2, 5), (5, 3, 4)]:
+        for _ in range(4):
+            H_X, H_Z = generate_infinite_code(n, m, l_max, l_init=1, w_init=w, rng=rng)
+            s_X, s_Z = syzygies(H_X, l_max), syzygies(H_Z, l_max)
+            assert s_X.n == 0 or compose(H_X, s_X).is_zero()
+            euler = H_X.n - s_X.n + H_Z.n - s_Z.n
+            over += (H_X.n + H_Z.n) - n
+            assert euler == n, f"n={n}: kX={H_X.n} kZ={H_Z.n} sX={s_X.n} sZ={s_Z.n}"
+    print(f"euler sum: ok  (raw generator counts were redundant by {over} in total)")
+
+
 if __name__ == "__main__":
     test_compose()
     test_expand()
     test_shift_commutes()
     test_syzygies()
+    test_dagger()
+    test_pairing()
+    test_infinite_code()
+    test_euler_sum()
     print("all ok")
