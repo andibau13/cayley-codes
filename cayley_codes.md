@@ -1,0 +1,71 @@
+# CSS codes on Cayley graphs
+
+Here we describe and test a very simple method of generating finite-size codes by defining a code on an infinite Cayley graph of a group $G_\infty$ and then compactifying to a finite quotient $G$.
+
+### Infinite code
+The first step is to define an infinite code with $n$ qubits on each vertex of an infinite 4-valent Cayley graph, i.e. the Cayley graph of an infinite group $G_\infty$ presented with two generators $a$ and $b$.
+Two notable examples for 2-generator groups are the free group $F_2$ with no relations, and $PSL(2,Z)$ with two relations, $a^3$ and $b^2$.
+The stabilizers of this infinite code are translation invariant, and have low weight and small/local support size on the graph.
+To talk about locality on the infinite Cayley graph more concretely, define a depth-$l$ star as the set of vertices that are connected to a central vertex via $l$ edges
+The depth-$l$ star grows exponentially with $l$ so we can't go to very large $l$.
+For example, for $F_2$, the depth-$4$ star already has $1+4+16+64+4^3=341$ vertices, and depth-$5$ has $1365$.
+Local support means for example on the depth-$1$ star, or maybe on the depth-$2$ star even though that is already a bit large.
+
+We can generate such codes by
+- randomly generate a small set of locally supported low-weight $Z$ operators
+- Find all generating commuting locally supported $X$-type operators
+- Forget the original $Z$ operators. Find all $Z$-type operators commuting with the found $X$-type operators (which does include the original $Z$-type operators but possibly some more). The found $X$-type and $Z$-type operators are now the stabilizers.
+
+Mathematically, finding the commuting $X/Z$ operators corresponds to computing the annihilator of the module of $Z/X$ operators, with the pairing $\langle a,b\rangle=\int a^* b$.
+If $H_Z$ denotes the $Z$-check matrix, then this involves computing the syzygies/kernel of $H_Z^\dagger$ defined as $(H_Z^\dagger)_{ij}=(H_Z)_{ji}^*$. 
+
+To find the sygygies in practice, we find all kernel elements supported on the depth-$l$ star, for increasing $l$ starting from $l=0$.
+Let $X_l$ denote the kernel elements on the depth-$l$ star which are not in the span of any kernel elements of depth-$m$ stars with $m<l$.
+To find $X_l$, we start by finding the full space of kernel elements supported on the depth-$l$ star.
+Then, for each $m<l$, we consider all elements of $X_m$ translated to any vertex in the depth-$l-m$ star, and quotient by this space.
+We proceed until a reasonable $l$, such as $l=4$ or $l=5$.
+We hope that we only find new kernel elements at very small $l$, say $l=0$, $l=1$ and maybe $l=2$ (already less ideal).
+
+### Compactifying to a finite code
+The next step is to turn the infinite code into a finite code by "compactification".
+A compactification is given by a normal subgroup $H\subset G_\infty$ such that $G_\infty/H$ is finite.
+The finite code is obtained by simply quotienting all the stabilizers.
+In other words, we concatenate $H_X^\infty$ and $H_Z^\infty$ with the linearized quotient map from $G_\infty\rightarrow G_\infty/H$.
+To get a reasonable finite code, $H$ should have large relative girth.
+The girth is the minimum size of a word in the 2 generators that represents a non-trivial group element of $H$.
+By construction, any logical operator must span a support that "sees" the finiteness, and therefore whose size is at least the girth.
+So a family with unboundedly growing girth must automatically have unboundedly growing distance.
+Note however that the girth can only be logarithmic in the total qubit number, and thus the distance guarantee is a very bad one.
+However it is still conceivable that rather generic random examples will have much better growing distance.
+
+If $G_\infty=F_2$, then any finite group with a 2-generator presentation defines a quotient:
+The quotient is simply the quotient by all the relations of the finite-group presentation.
+So possible compactifications in this case correspond to finite-group 2-generator presentations of large girth.
+Examples can be obtained from brute-force search through all finite-group presentations:
+There is a [dataset](https://graphsym.net/) listing all 4-valent (2-generator) Cayley graphs of order up to 5000.
+Not sure if it is easily searchable by girth.
+There are also concrete families of growing girth:
+An example is given by $G_p=PSL(2,F_p)$ for odd primes $p$ and generators
+$$a = \begin{pmatrix}1&2\\0&1\end{pmatrix},\quad b = \begin{pmatrix}1&0\\2&1\end{pmatrix}$$
+
+If $G_\infty=PSL(2,Z)$, then the finite quotient group $G_\infty/H$ is a subgroup of $S_n$ for some $n$, so there is a homomorphism $\rho: G_\infty\rightarrow S_n$.
+So we can sample/enumerate finite quotients by (1) iterating over increasing $n$ and (2) running through pairs of $S_n$-elements $\rho(a)$ and $\rho(b)$ satisfying the relations $\rho(a)^2=1$ and $\rho(b)^3=1$.
+$G_\infty/H$ is then simply the subgroup generated by $\rho(a)$ and $\rho(b)$.
+The relative girth can be computed easily by breath-first-search, which should be linear in $|G_\infty/H|$.
+
+### Encoding rate
+Here's a practical method how to count the "density" of logical qubits in the infinite code:
+First we determine the "true number" of $X$ and $Z$ stabilizers per vertex.
+To so this, we compute repeated syzygies, also known as free/projective resolution of $H_X/H_Z$.
+Then the number of "stabilizers per vertex" is given by the Euler sum of the number of generators in each syzygy.
+
+Let $m$ be the total number of $X$ and $Z$ stabilizers per vertex of the infinite code.
+For $G=F_2$, we always have $m=n$.
+This is because if the $X$ (or $Z$) stabilizers are the image of some map between free modules, then this map can be chosen injective without any syzygies.
+This is easy to see by the tree-like structure of the $F_2$ Cayley graph:
+Assume there is a bunch of translates of $X$ stabilizers that cancel.
+Then there has to be some outer-most vertex where the stabilizers cannot cancel due to the tree-like structure.
+
+After compacifying with a finite group $G$, the resulting finite code has $|G|n$ qubits.
+The compactified $Om$ stabilizers may not all be independent though.
+When we compactify in the next step, $m<n$ guarantees a finite-rate family. $m=n$ may still in principle lead to a large number of logicals as stabilizers can become dependent on the finite code.
