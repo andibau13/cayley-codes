@@ -2,6 +2,15 @@
 
 These notes contain instructions for Claude to implement the ideas in cayley_codes.md step by step.
 
+### General instructions
+- Implement in python, make use of specialized libraries when possible (but not to replace short code).
+- use the virtual environment .venv for testing
+- this is a research project. no need for it to be super polished and test all exceptions or verify user inputs. no need to define getters and setters for everything etc. keep it concise.
+- ask questions before implementing if anything is unclear
+- avoid explicit python loops unless it doesn't matter for performance. try to use numpy where possible
+- keep for yourself compact notes about the state of the implementation
+- maintain a .gitignore covering all files that aren't "sources" in the usual sense.
+
 ### Step 1
 - Create a file code/core.py.
 - For the ring $R=F_2[F_2]$, add a class defining a map between free modules $f:R^n\rightarrow R^m$.

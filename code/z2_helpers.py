@@ -1,4 +1,4 @@
-from . import bitgauss_wrappers as z2lin
+import bitgauss_wrappers as z2lin
 # if for some reason bitgauss installation doesn't work, it can be changed with galois using the line below
 # import galois_wrappers as z2lin
 import numpy as np
