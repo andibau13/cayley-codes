@@ -26,3 +26,9 @@ It then generates $m$ random words of hamming weight $\leq w_{init}$ on the $l_{
 Then we return $H_X=\ker(f^\dagger)$ and $H_Z=\ker(H_X^\dagger)$, where $\ker$ means the syzygies.
 It should then automatically hold that $H_X=\ker(H_Z^\dagger)$ (related to the fact that the single and triple annihilator are the same).
 The syzygy should correspond to the operators of other type ($X$ vs $Z$) that commute.
+
+### Step 3
+- add a class ```Compactification``` whose main attribute is a 4-valent Cayley graph of a finite group $G$, given by two permutations of $[0,|G|-1]$ (can just be stored as a list for example)
+- add a method ```reduce_word``` which takes an $F_2$ element/word and maps it to a $G$-element by concatenating all the permutations.
+- add a method ```find_girth``` that computes the girth of the Cayley graph by breath-first search: Let me try to figure out how this works here but you probably can do this better yourself: For each $G$-element $g$ find the shortest word $w(g,x)$ representing it for any right-most letter $x$. Then $w(gy,y)$ is the shorter of $w(g,x)y$ with $x\neq y^{-1}$ or $w(g,y^{-1})y$. Ok, i'm not really sure how to do this best, but you can figure it out. Also, if there's any fast library that can do this computation for you, then just use that.
+- add a method ```compactify``` in the free-module-map class, using taking a ```Compactification``` map, which compactifies the free-module-map into an ordinary $m|G|\times n|G|$ binary matrix

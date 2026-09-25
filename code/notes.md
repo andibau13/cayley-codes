@@ -58,7 +58,26 @@ annihilator automatically contains the first; `test_infinite_code` checks equali
 `k_X + k_Z = n` (the md's `m = n`) holds for most random samples, but not always: the raw counts
 can overshoot because the returned generators need not be R-independent (see below). The Euler sum
 `k_X - syz(H_X) + k_Z - syz(H_Z)` was `= n` in 72/72 random trials, including all overshooting
-ones. So the overshoot is real redundancy, not a violation of the claim. With `l_init = 1` and
+ones. So the overshoot is real redundancy, not a violation of the claim.
+
+Note `F_2[F_2]` is a free ideal ring (Cohn), so every submodule of a free module is free and the
+global dimension is 1: the *true* syzygy module has a basis and second syzygies vanish. Any second
+syzygy we compute is therefore an artifact of our generating set, never of the ring. (Contrast
+`F_2[Z^d]`, global dimension d; and note `F_2[PSL(2,Z)] = F_2[C_2 * C_3]` contains
+`F_2[C_2] = F_2[x]/(x^2)`, which has *infinite* global dimension in characteristic 2 — for that
+group the Euler-sum recipe of the md will not terminate, and the rate needs a different handle.)
+
+Diagnosis of the observed redundancy: a generator accepted at depth `l` is never revisited, and at
+depth `l` the combination witnessing its redundancy uses translates of *other* depth-`l`
+generators, which stick out of the depth-`l` star. In every overshooting case inspected, the
+relation had a **unit** coefficient (a single group element — `F_2[F_2]` has only trivial units),
+i.e. one generator is literally an R-combination of translates of the others, and testing that
+directly inside the depth-`l_max` star already detects it. So a cheap final pruning pass (for each
+generator, is it in the R-span of the other generators' translates inside the star?) would fix all
+cases seen so far. Deletion can fail in principle if *every* relation has all coefficients
+non-units; then a basis still exists but its elements are R-combinations of the old generators, so
+one would have to change basis rather than drop generators. Not implemented — deliberately left
+as is, since for groups other than `F_2` genuinely longer resolutions are possible. With `l_init = 1` and
 `w_init ~ n`, `H_X` is frequently empty for `m >= n/2`, which makes `H_Z = identity` (a trivial
 code with no stabilizers) — for interesting codes keep `m` small relative to `n`.
 
