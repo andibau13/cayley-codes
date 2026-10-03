@@ -34,4 +34,8 @@ The syzygy should correspond to the operators of other type ($X$ vs $Z$) that co
 - add a method ```compactify``` in the free-module-map class, using taking a ```Compactification``` map, which compactifies the free-module-map into an ordinary $m|G|\times n|G|$ binary matrix
 
 ### Step 4
--
+Let's now explore generalizing the methods above to other simple finitely-presented infinite groups.
+First I need to brainstorm with you about how we represent the infinite group as an abstract class.
+It should have an efficiently solvable word problem at least. This could mean that an infinite group is a member of an interface class defining a function that takes in a word and decides whether it corresponds to the trivial group element. For example, for PSL(2,Z) this could be implemented by a simple standard form, or for SL(2,Z) by explicitly calculating the product of integer matrices.
+
+Your task for this step is to not implement anything yet, but create a "code/group_implementation.md" file where you list the interface that a general infinite group has to provide such that you can then later generalize all methods such as free-module composition or annihilator/syzygy computation to general groups. leave questions in the file if there's contradictions to my suggestion or where there's open design choices.
