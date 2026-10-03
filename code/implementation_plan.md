@@ -34,4 +34,4 @@ The syzygy should correspond to the operators of other type ($X$ vs $Z$) that co
 - add a method ```compactify``` in the free-module-map class, using taking a ```Compactification``` map, which compactifies the free-module-map into an ordinary $m|G|\times n|G|$ binary matrix
 
 ### Step 4
-- 
+-
